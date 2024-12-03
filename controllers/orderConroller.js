@@ -146,12 +146,10 @@ const deleteOrder = async (req, res) => {
   const { orderId } = req.params;
 
   try {
-    const order = await OrderModel.findById(orderId);
-    if (!order) {
+    const deletedOrder = await OrderModel.findByIdAndDelete(orderId);
+    if (!deletedOrder) {
       return res.status(404).json({ message: 'Order not found' });
     }
-
-    await order.remove();
 
     res.status(200).json({ message: 'Order deleted successfully' });
   } catch (error) {
@@ -160,9 +158,67 @@ const deleteOrder = async (req, res) => {
   }
 };
 
+
+
+
+// Hủy đơn hàng
+const cancelOrder = async (req, res) => {
+  const { orderId } = req.params;
+  const userId = req.user.id; // Lấy `id` từ thông tin giải mã trong token
+
+  try {
+    // Tìm đơn hàng theo ID và kiểm tra người dùng sở hữu đơn hàng
+    const order = await OrderModel.findById(orderId).populate('items.productId');
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Đơn hàng không tồn tại.' });
+    }
+
+    // Kiểm tra nếu người dùng yêu cầu hủy đơn hàng không phải là chủ sở hữu
+    if (order.userId.toString() !== userId) {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền hủy đơn hàng này.' });
+    }
+
+    // Kiểm tra trạng thái đơn hàng (chỉ cho phép hủy nếu chưa giao hàng)
+    if (order.orderStatus === 'Delivered') {
+      return res.status(400).json({ success: false, message: 'Không thể hủy đơn hàng đã được giao.' });
+    }
+
+    // Hoàn lại số lượng sản phẩm vào kho
+    for (const item of order.items) {
+      const product = await ProductModel.findById(item.productId._id);
+      if (!product) {
+        return res.status(404).json({ success: false, message: `Product with ID ${item.productId._id} not found` });
+      }
+
+      // Tìm biến thể sản phẩm dựa trên màu sắc
+      const variant = product.variants.find(variant => variant.color === item.variant.color);
+      if (variant) {
+        // Thêm số lượng sản phẩm vào kho
+        variant.quantity += item.quantity;
+
+        // Lưu thay đổi vào cơ sở dữ liệu
+        await product.save();
+      } else {
+        return res.status(404).json({ success: false, message: `Variant with color ${item.variant.color} not found for product ${product.name}` });
+      }
+    }
+
+    // Cập nhật trạng thái đơn hàng thành "Cancelled"
+    order.orderStatus = 'Cancelled';
+    await order.save();
+
+    res.status(200).json({ success: true, message: 'Đơn hàng đã được hủy thành công và số lượng sản phẩm đã được hoàn lại vào kho.' });
+  } catch (error) {
+    console.error('Lỗi hủy đơn hàng:', error);
+    res.status(500).json({ success: false, message: 'Đã xảy ra lỗi khi hủy đơn hàng.' });
+  }
+};
+
+
 module.exports = {
   createOrder,
   getOrders,
   updateOrderStatus,
-  deleteOrder
+  deleteOrder,
+  cancelOrder
 };

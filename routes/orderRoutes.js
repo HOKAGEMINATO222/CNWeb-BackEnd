@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const OrderController = require('../controllers/orderConroller');
+const authMiddleware = require('../middlewares/userMiddleware');
 
 // Route tạo đơn hàng mới
 router.post('/', OrderController.createOrder);
@@ -13,5 +14,8 @@ router.put('/:orderId/status', OrderController.updateOrderStatus);
 
 // Route xóa đơn hàng
 router.delete('/:orderId', OrderController.deleteOrder);
+
+// Hủy đơn hàng
+router.patch('/:orderId', authMiddleware, OrderController.cancelOrder);
 
 module.exports = router;

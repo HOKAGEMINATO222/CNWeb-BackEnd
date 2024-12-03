@@ -17,7 +17,7 @@ const {
 } = require('../controllers/adminController');
 
 // Lấy thông tin tổng quan admin
-router.get('/dashboard', protect, isAdmin, getAdminDashboard);
+router.get('/', protect, isAdmin, getAdminDashboard);
 
 // Lấy thông tin admin
 router.get('/profile', protect, isAdmin, getAdminProfile);
