@@ -19,10 +19,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use((req, res, next) => {
-    console.log('Request Origin:', req.headers.origin);
-    next();
-});
 
 app.use(express.json());
 
