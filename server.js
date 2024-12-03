@@ -5,19 +5,25 @@ const adminRoutes = require('./routes/adminRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes'); 
 const cartRoutes = require('./routes/cartRoutes'); 
+const commentRoutes = require('./routes/commentRoutes')
 const cors = require('cors');
 const app = express();
 require('dotenv').config();
 
 const corsOptions = {
-    origin: 'http://localhost:3000',  // Chỉ định origin của frontend
-    methods: ['GET', 'POST', 'DELETE', 'PATCH', 'PUT '],
+    origin: ['https://web-hitech.web.app', 'http://localhost:3000'],  
+    methods: ['GET', 'POST', 'DELETE', 'PATCH', 'PUT'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,  // Cho phép gửi cookies hoặc JWT
+    credentials: true,
 };
 
-
 app.use(cors(corsOptions));
+
+app.use((req, res, next) => {
+    console.log('Request Origin:', req.headers.origin);
+    next();
+});
+
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
@@ -39,6 +45,9 @@ app.use('/orders', orderRoutes);
 
 // Sử dụng routes cart
 app.use('/cart', cartRoutes); 
+
+// Sử dụng routes comments
+app.use('/comments', commentRoutes); 
 
 app.listen(PORT, () => {
     console.log(`Server đang chạy trên cổng ${PORT}`);

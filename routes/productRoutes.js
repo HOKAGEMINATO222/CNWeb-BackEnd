@@ -1,5 +1,5 @@
 const express = require('express');
-const { getProducts, getProductById, addReview, addComment, getRelatedProducts } = require('../controllers/productController');
+const { getProducts, getProductById, addReview, getComments, getRelatedProducts } = require('../controllers/productController');
 
 const router = express.Router();
     
@@ -9,7 +9,7 @@ router.get('/:productId', getProductById);
 
 router.post('/:productId/review', addReview);
 
-router.post('/:productId/comment', addComment);
+router.get('/:productId/comments', getComments);
 
 // API lấy sản phẩm liên quan
 router.get('/:productId/related', getRelatedProducts);

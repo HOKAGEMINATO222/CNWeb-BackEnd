@@ -68,54 +68,76 @@ const getProductById = async (req, res) => {
 
 // Add a review (rating)
 const addReview = async (req, res) => {
-  const { productId, userId, rating } = req.body;
+  const { productId, userId, stars, text } = req.body;
 
-  if (!productId || !userId || !rating) {
-      return res.status(400).json({ message: "All fields are required (productId, userId, rating)" });
+  //console.log(productId);
+  //console.log(userId);
+  //console.log(stars);
+  //console.log(text);
+
+  if (!productId || !userId || !stars || stars < 1 || stars > 5) {
+    return res.status(400).json({ message: "All fields are required, and 'stars' must be between 1 and 5." });
   }
 
   try {
-      const product = await ProductModel.findById(productId);
+    const product = await ProductModel.findById(productId);
 
-      if (!product) {
-          return res.status(404).json({ message: "Product not found" });
-      }
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
-      product.ratings.push({ userId, rating });
-      await product.save();
 
-      res.status(200).json({ message: "Rating added successfully", ratings: product.ratings });
+    // Add the review
+    product.reviews.set(userId, stars, text);
+
+    // Update the star-level count
+    if (stars === 1) product.star1++;
+    if (stars === 2) product.star2++;
+    if (stars === 3) product.star3++;
+    if (stars === 4) product.star4++;
+    if (stars === 5) product.star5++;
+
+    // Recalculate the average rating
+    const totalReviews = product.star1 + product.star2 + product.star3 + product.star4 + product.star5;
+
+    if (totalReviews === 0) {
+      product.rating = 0; // Default to 0 if there are no reviews
+    } else {
+      const totalStars = product.star1 * 1 + product.star2 * 2 + product.star3 * 3 + product.star4 * 4 + product.star5 * 5;
+      product.rating = totalStars / totalReviews;
+    }
+
+    await product.save();
+
+    res.status(200).json({ message: "Review added successfully", product });
   } catch (err) {
-      res.status(500).json({ message: "Error adding rating", error: err.message });
+    res.status(500).json({ message: "Error adding review", error: err.message });
   }
 };
 
 
-// Add a comment
-const addComment = async (req, res) => {
-  const { productId, userId, text } = req.body;
-
-  if (!productId || !userId || !text) {
-      return res.status(400).json({ message: "All fields are required (productId, userId, text)" });
-  }
+const getComments = async (req, res) => {
+  const { productId } = req.params;
 
   try {
-      const product = await ProductModel.findById(productId);
+    const product = await ProductModel.findById(productId);
 
-      if (!product) {
-          return res.status(404).json({ message: "Product not found" });
-      }
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
 
-      product.comments.push({ userId, text });
-      await product.save();
+    if (!product.reviews || product.reviews.size === 0) {
+      return res.status(200).json({ message: 'No comments found', comments: [] });
+    }
 
-      res.status(200).json({ message: "Comment added successfully", comments: product.comments });
+    // If reviews is a Map, convert it to an array of values
+    const comments = Array.from(product.reviews.values()).map((review) => review.text);
+
+    res.status(200).json({ message: 'Comments fetched successfully', comments });
   } catch (err) {
-      res.status(500).json({ message: "Error adding comment", error: err.message });
+    res.status(500).json({ message: 'Error fetching comments', error: err.message });
   }
 };
-
-// Lấy sản phẩm liên quan
 
 const getRelatedProducts = async (req, res) => {
   const { productId } = req.params;
@@ -141,4 +163,4 @@ const getRelatedProducts = async (req, res) => {
 };
 
 
-module.exports = {createProduct, getProducts, getProductById, addReview, addComment, getRelatedProducts };
+module.exports = {createProduct, getProducts, getProductById, addReview, getComments, getRelatedProducts };

@@ -2,6 +2,7 @@
   "name": "back_end",
   "version": "1.0.0",
   "main": "index.js",
+  "proxy": "https://cnweb-backend-6mh8.onrender.com",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
